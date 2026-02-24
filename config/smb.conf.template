@@ -1,0 +1,25 @@
+[global]
+   workgroup = {{SAMBA_WORKGROUP}}
+   server string = {{SAMBA_SERVER_STRING}}
+   security = user
+   map to guest = bad user
+   printing = cups
+   printcap name = cups
+   load printers = yes
+   cups options = raw
+
+[printers]
+   comment = All Printers
+   path = /var/spool/samba
+   browseable = yes
+   printable = yes
+   guest ok = yes
+   read only = yes
+   create mask = 0700
+
+[print$]
+   comment = Printer Drivers
+   path = /var/lib/samba/printers
+   browseable = yes
+   read only = no
+   guest ok = no

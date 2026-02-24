@@ -1,0 +1,27 @@
+LogLevel warn
+MaxLogSize 0
+Listen 0.0.0.0:631
+Listen /run/cups/cups.sock
+Browsing On
+BrowseLocalProtocols dnssd
+DefaultAuthType Basic
+WebInterface Yes
+
+<Location />
+  Order allow,deny
+  Allow @LOCAL
+</Location>
+
+<Location /admin>
+  AuthType Default
+  Require user @SYSTEM
+  Order allow,deny
+  Allow @LOCAL
+</Location>
+
+<Location /admin/conf>
+  AuthType Default
+  Require user @SYSTEM
+  Order allow,deny
+  Allow @LOCAL
+</Location>
