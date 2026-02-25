@@ -98,7 +98,7 @@ step_update() {
     log "Uppdaterar paketlistor och systemet..."
     apt update -y >> "$LOG_FILE" 2>&1
     apt upgrade -y >> "$LOG_FILE" 2>&1
-    apt install -y curl git ufw tmux >> "$LOG_FILE" 2>&1
+    apt install -y curl git ufw >> "$LOG_FILE" 2>&1
     log "Systemuppdatering klar."
 }
 
@@ -172,7 +172,7 @@ step_install_packages() {
         avahi-daemon libnss-mdns
         samba smbclient
         openprinting-ppds foomatic-db-compressed-ppds
-        ufw
+        ufw tmux
     )
 
     if [[ "${INSTALL_HPLIP,,}" == "true" ]]; then
