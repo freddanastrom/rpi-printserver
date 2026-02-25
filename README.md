@@ -53,7 +53,7 @@ sudo bash scripts/add-zebra-printer.sh
 
 | Paket                              | Funktion                                    |
 |------------------------------------|---------------------------------------------|
-| `cups`, `cups-client`, `cups-filters` | Utskriftsserver (CUPS)                   |
+| `cups`, `cups-client`, `cups-bsd`, `cups-filters` | Utskriftsserver (CUPS) + `lpr`/`lpq`-kommandon |
 | `avahi-daemon`, `libnss-mdns`      | Bonjour/AirPrint – automatisk nätverksupptäckt |
 | `samba`, `smbclient`               | Windows-kompatibel utskriftsdelning         |
 | `openprinting-ppds`, `foomatic-db-compressed-ppds` | Drivrutinsdatabas           |

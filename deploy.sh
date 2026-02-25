@@ -94,7 +94,7 @@ Kopiera mallen och fyll i värden:
 
 # ── Steg 1: Uppdatera system ──────────────────────────────────────────────────
 step_update() {
-    step "Steg 1/9: Systemuppdatering"
+    step "Steg 1/10: Systemuppdatering"
     log "Uppdaterar paketlistor och systemet..."
     apt update -y >> "$LOG_FILE" 2>&1
     apt upgrade -y >> "$LOG_FILE" 2>&1
@@ -104,7 +104,7 @@ step_update() {
 
 # ── Steg 2: Hostname, timezone, locale ───────────────────────────────────────
 step_system() {
-    step "Steg 2/9: Systeminställningar"
+    step "Steg 2/10: Systeminställningar"
 
     log "Sätter hostname till: $HOSTNAME"
     hostnamectl set-hostname "$HOSTNAME"
@@ -134,7 +134,7 @@ step_system() {
 
 # ── Steg 8: Statisk WiFi via NetworkManager ───────────────────────────────────
 step_network() {
-    step "Steg 8/9: Nätverkskonfiguration (statisk IP via nmcli)"
+    step "Steg 8/10: Nätverkskonfiguration (statisk IP via nmcli)"
 
     warn "SSH-anslutningen kan tappas när IP ändras. Reconnecta med: ssh ${CUPS_ADMIN_USER}@${STATIC_IP} && tmux attach -t deploy"
 
@@ -173,7 +173,7 @@ step_network() {
 
 # ── Steg 4: Installera paket ──────────────────────────────────────────────────
 step_install_packages() {
-    step "Steg 3/9: Installerar paket"
+    step "Steg 3/10: Installerar paket"
 
     local packages=(
         cups cups-client cups-bsd cups-filters
@@ -205,7 +205,7 @@ step_install_packages() {
 
 # ── Steg 5: Konfigurera CUPS ──────────────────────────────────────────────────
 step_configure_cups() {
-    step "Steg 4/9: Konfigurerar CUPS"
+    step "Steg 4/10: Konfigurerar CUPS"
 
     local template="$SCRIPT_DIR/config/cupsd.conf.template"
     local dest="/etc/cups/cupsd.conf"
@@ -229,7 +229,7 @@ step_configure_cups() {
 
 # ── Steg 6: Konfigurera Samba ─────────────────────────────────────────────────
 step_configure_samba() {
-    step "Steg 5/9: Konfigurerar Samba"
+    step "Steg 5/10: Konfigurerar Samba"
 
     local template="$SCRIPT_DIR/config/smb.conf.template"
     local dest="/etc/samba/smb.conf"
@@ -257,7 +257,7 @@ step_configure_samba() {
 
 # ── Steg 7: Konfigurera brandvägg ─────────────────────────────────────────────
 step_configure_firewall() {
-    step "Steg 6/9: Konfigurerar brandvägg (ufw)"
+    step "Steg 6/10: Konfigurerar brandvägg (ufw)"
 
     log "Återställer och konfigurerar ufw-regler..."
     ufw --force reset >> "$LOG_FILE" 2>&1
@@ -278,7 +278,7 @@ step_configure_firewall() {
 
 # ── Steg 8: Aktivera tjänster ──────────────────────────────────────────────────
 step_enable_services() {
-    step "Steg 7/9: Aktiverar och startar tjänster"
+    step "Steg 7/10: Aktiverar och startar tjänster"
 
     # Säkerställ att tjänsterna är aktiverade vid boot
     systemctl enable cups avahi-daemon smbd nmbd >> "$LOG_FILE" 2>&1
@@ -295,9 +295,39 @@ step_enable_services() {
     log "Alla tjänster aktiverade och startade."
 }
 
-# ── Steg 9: Sammanfattning ────────────────────────────────────────────────────
+# ── Steg 9: Read-only SD-kort (overlayfs) ────────────────────────────────────
+step_readonly() {
+    step "Steg 9/10: Aktiverar read-only läge (overlayfs)"
+
+    local cmdline_txt="/boot/firmware/cmdline.txt"
+
+    # fstab – idempotent (kontroll på /mnt/rw-root)
+    if ! grep -q "/mnt/rw-root" /etc/fstab; then
+        local root_partuuid
+        root_partuuid=$(grep -oP '(?<=root=PARTUUID=)[^ ]+' "$cmdline_txt")
+        [[ -z "$root_partuuid" ]] && error "Kunde inte hitta root PARTUUID i $cmdline_txt"
+
+        mkdir -p /mnt/rw-root
+
+        cat >> /etc/fstab <<EOF
+
+# Persistent kataloger — kringgår overlayfs (skrivet av deploy.sh)
+PARTUUID=${root_partuuid}  /mnt/rw-root    ext4  defaults,noatime,nofail  0  0
+/mnt/rw-root/home          /home           none  bind,nofail        0  0
+/mnt/rw-root/etc/cups      /etc/cups       none  bind,nofail        0  0
+EOF
+        log "fstab: /home och /etc/cups konfigurerade som persistenta (PARTUUID=${root_partuuid})"
+    else
+        log "fstab: persistenta kataloger redan konfigurerade"
+    fi
+
+    raspi-config nonint enable_overlayfs >> "$LOG_FILE" 2>&1
+    log "overlayfs aktiverat – träder i kraft efter omstart."
+}
+
+# ── Steg 10: Sammanfattning ───────────────────────────────────────────────────
 step_summary() {
-    step "Steg 9/9: Deploy klar!"
+    step "Steg 10/10: Deploy klar!"
 
     echo ""
     echo -e "${GREEN}${BOLD}╔══════════════════════════════════════════════╗${NC}"
@@ -323,6 +353,10 @@ step_summary() {
     echo ""
     echo -e "${BOLD}Testutskrift ZPL (efter skrivare lagts till):${NC}"
     echo -e "  ${CYAN}printf '^XA^FO50,50^ADN,36,20^FDTest ZPL^FS^XZ' | lpr -P <SKRIVARNAMN>${NC}"
+    echo ""
+    echo -e "${BOLD}Read-only SD-kort:${NC}"
+    echo -e "  Starta om för att aktivera read-only läge:"
+    echo -e "  ${CYAN}sudo reboot${NC}"
     echo ""
     echo -e "Logg sparad i: ${LOG_FILE}"
     echo ""
@@ -354,6 +388,18 @@ main() {
     check_root
     load_config
 
+    # Detektera om overlayfs redan är aktivt – inaktivera och avsluta för omstart
+    if findmnt -n -o FSTYPE / 2>/dev/null | grep -q "overlay"; then
+        warn "SD-kortet är i read-only läge (overlayfs aktivt)."
+        log "Inaktiverar overlayfs för att möjliggöra uppdatering..."
+        raspi-config nonint disable_overlayfs >> "$LOG_FILE" 2>&1
+        echo ""
+        echo -e "${YELLOW}${BOLD}Omstart krävs innan deploy kan köras igen.${NC}"
+        echo -e "  ${CYAN}sudo reboot${NC}"
+        echo -e "  ${CYAN}sudo bash deploy.sh${NC}  (efter omstart)"
+        exit 0
+    fi
+
     step_update
     step_system
     step_install_packages
@@ -362,6 +408,7 @@ main() {
     step_configure_firewall
     step_enable_services
     step_network
+    step_readonly
     step_summary
 }
 
