@@ -132,14 +132,22 @@ step_system() {
     log "Systeminställningar klara."
 }
 
-# ── Steg 3: Statisk WiFi via NetworkManager ───────────────────────────────────
+# ── Steg 8: Statisk WiFi via NetworkManager ───────────────────────────────────
 step_network() {
-    step "Steg 3/9: Nätverkskonfiguration (statisk IP via nmcli)"
+    step "Steg 8/9: Nätverkskonfiguration (statisk IP via nmcli)"
 
-    warn "Om SSH körs via WiFi tappar anslutningen när IP ändras. Kör deploy.sh inuti tmux så fortsätter scriptet köra. Reconnecta med: ssh ${CUPS_ADMIN_USER}@${STATIC_IP} && tmux attach -t deploy"
+    warn "SSH-anslutningen kan tappas när IP ändras. Reconnecta med: ssh ${CUPS_ADMIN_USER}@${STATIC_IP} && tmux attach -t deploy"
 
-    if nmcli connection show "$WIFI_SSID" &>/dev/null; then
-        log "Modifierar befintlig WiFi-anslutning: $WIFI_SSID"
+    # Kontrollera om enheten redan är ansluten till angivet SSID
+    if nmcli -t -f ACTIVE,SSID dev wifi 2>/dev/null | grep -q "^yes:${WIFI_SSID}$"; then
+        log "Redan ansluten till $WIFI_SSID – konfigurerar bara statisk IP."
+        nmcli connection modify "$WIFI_SSID" \
+            ipv4.method manual \
+            ipv4.addresses "${STATIC_IP}/${SUBNET_PREFIX}" \
+            ipv4.gateway "$GATEWAY" \
+            ipv4.dns "$DNS"
+    elif nmcli connection show "$WIFI_SSID" &>/dev/null; then
+        log "Modifierar befintlig WiFi-anslutning (ej aktiv): $WIFI_SSID"
         nmcli connection modify "$WIFI_SSID" \
             ipv4.method manual \
             ipv4.addresses "${STATIC_IP}/${SUBNET_PREFIX}" \
@@ -157,7 +165,7 @@ step_network() {
             connection.autoconnect yes
     fi
 
-    log "Aktiverar anslutning..."
+    log "Aktiverar anslutning med ny IP..."
     nmcli connection up "$WIFI_SSID" >> "$LOG_FILE" 2>&1 || true
 
     log "Nätverkskonfiguration klar. Statisk IP: ${STATIC_IP}/${SUBNET_PREFIX}"
@@ -165,10 +173,10 @@ step_network() {
 
 # ── Steg 4: Installera paket ──────────────────────────────────────────────────
 step_install_packages() {
-    step "Steg 4/9: Installerar paket"
+    step "Steg 3/9: Installerar paket"
 
     local packages=(
-        cups cups-client cups-filters
+        cups cups-client cups-bsd cups-filters
         avahi-daemon libnss-mdns
         samba smbclient
         openprinting-ppds foomatic-db-compressed-ppds
@@ -197,7 +205,7 @@ step_install_packages() {
 
 # ── Steg 5: Konfigurera CUPS ──────────────────────────────────────────────────
 step_configure_cups() {
-    step "Steg 5/9: Konfigurerar CUPS"
+    step "Steg 4/9: Konfigurerar CUPS"
 
     local template="$SCRIPT_DIR/config/cupsd.conf.template"
     local dest="/etc/cups/cupsd.conf"
@@ -221,7 +229,7 @@ step_configure_cups() {
 
 # ── Steg 6: Konfigurera Samba ─────────────────────────────────────────────────
 step_configure_samba() {
-    step "Steg 6/9: Konfigurerar Samba"
+    step "Steg 5/9: Konfigurerar Samba"
 
     local template="$SCRIPT_DIR/config/smb.conf.template"
     local dest="/etc/samba/smb.conf"
@@ -249,7 +257,7 @@ step_configure_samba() {
 
 # ── Steg 7: Konfigurera brandvägg ─────────────────────────────────────────────
 step_configure_firewall() {
-    step "Steg 7/9: Konfigurerar brandvägg (ufw)"
+    step "Steg 6/9: Konfigurerar brandvägg (ufw)"
 
     log "Återställer och konfigurerar ufw-regler..."
     ufw --force reset >> "$LOG_FILE" 2>&1
@@ -270,7 +278,7 @@ step_configure_firewall() {
 
 # ── Steg 8: Aktivera tjänster ──────────────────────────────────────────────────
 step_enable_services() {
-    step "Steg 8/9: Aktiverar och startar tjänster"
+    step "Steg 7/9: Aktiverar och startar tjänster"
 
     # Säkerställ att tjänsterna är aktiverade vid boot
     systemctl enable cups avahi-daemon smbd nmbd >> "$LOG_FILE" 2>&1
@@ -348,12 +356,12 @@ main() {
 
     step_update
     step_system
-    step_network
     step_install_packages
     step_configure_cups
     step_configure_samba
     step_configure_firewall
     step_enable_services
+    step_network
     step_summary
 }
 
