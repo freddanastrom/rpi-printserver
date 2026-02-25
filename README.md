@@ -37,11 +37,17 @@ scp -r . pi@raspberrypi.local:~/rpi-printserver/
 # 4. SSH in på RPi
 ssh pi@raspberrypi.local
 
-# 5. Kör deploy-scriptet
+# 5. Starta deploy i en tmux-session
+#    (scriptet överlever om SSH tappar när WiFi-IP ändras)
 cd ~/rpi-printserver
+tmux new-session -s deploy
 sudo bash deploy.sh
 
-# 6. Lägg till Zebra-skrivare (efter deploy)
+# 6. Om SSH tappar under deploy – reconnecta på den nya IP:n och återanslut tmux:
+ssh pi@<STATIC_IP>
+tmux attach -t deploy
+
+# 7. Lägg till Zebra-skrivare (efter deploy)
 sudo bash scripts/add-zebra-printer.sh
 ```
 

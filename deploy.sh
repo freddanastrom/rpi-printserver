@@ -98,7 +98,7 @@ step_update() {
     log "Uppdaterar paketlistor och systemet..."
     apt update -y >> "$LOG_FILE" 2>&1
     apt upgrade -y >> "$LOG_FILE" 2>&1
-    apt install -y curl git ufw >> "$LOG_FILE" 2>&1
+    apt install -y curl git ufw tmux >> "$LOG_FILE" 2>&1
     log "Systemuppdatering klar."
 }
 
@@ -136,7 +136,7 @@ step_system() {
 step_network() {
     step "Steg 3/9: Nätverkskonfiguration (statisk IP via nmcli)"
 
-    warn "Om SSH körs via WiFi kan anslutningen tappa i upp till 10 sekunder under detta steg."
+    warn "Om SSH körs via WiFi tappar anslutningen när IP ändras. Kör deploy.sh inuti tmux så fortsätter scriptet köra. Reconnecta med: ssh ${CUPS_ADMIN_USER}@${STATIC_IP} && tmux attach -t deploy"
 
     if nmcli connection show "$WIFI_SSID" &>/dev/null; then
         log "Modifierar befintlig WiFi-anslutning: $WIFI_SSID"
