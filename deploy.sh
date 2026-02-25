@@ -327,7 +327,7 @@ main() {
         if command -v tmux &>/dev/null; then
             echo "Startar deploy inuti tmux-session 'deploy'..."
             echo "Återanslut med: tmux attach -t deploy"
-            exec tmux new-session -s deploy "sudo bash '$0' $*"
+            exec tmux new-session -s deploy "bash '$(realpath "$0")'"
         fi
     fi
 
