@@ -37,10 +37,8 @@ scp -r . pi@raspberrypi.local:~/rpi-printserver/
 # 4. SSH in på RPi
 ssh pi@raspberrypi.local
 
-# 5. Starta deploy i en tmux-session
-#    (scriptet överlever om SSH tappar när WiFi-IP ändras)
+# 5. Kör deploy – scriptet startar automatiskt inuti tmux
 cd ~/rpi-printserver
-tmux new-session -s deploy
 sudo bash deploy.sh
 
 # 6. Om SSH tappar under deploy – reconnecta på den nya IP:n och återanslut tmux:
