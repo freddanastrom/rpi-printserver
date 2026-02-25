@@ -272,12 +272,19 @@ step_configure_firewall() {
 step_enable_services() {
     step "Steg 8/9: Aktiverar och startar tjänster"
 
-    for svc in cups avahi-daemon smbd nmbd; do
-        log "Aktiverar $svc..."
-        systemctl enable --now "$svc" >> "$LOG_FILE" 2>&1
+    # Säkerställ att tjänsterna är aktiverade vid boot
+    systemctl enable cups avahi-daemon smbd nmbd >> "$LOG_FILE" 2>&1
+
+    # Starta om tjänster med konfigurationsfiler som scriptet kan ha ändrat
+    for svc in cups smbd nmbd; do
+        log "Startar om $svc..."
+        systemctl restart "$svc" >> "$LOG_FILE" 2>&1
     done
 
-    log "Alla tjänster startade."
+    # Starta avahi om den inte redan kör (inga config-ändringar från scriptet)
+    systemctl start avahi-daemon >> "$LOG_FILE" 2>&1 || true
+
+    log "Alla tjänster aktiverade och startade."
 }
 
 # ── Steg 9: Sammanfattning ────────────────────────────────────────────────────

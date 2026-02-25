@@ -58,6 +58,7 @@ sudo bash scripts/add-zebra-printer.sh
 | `samba`, `smbclient`               | Windows-kompatibel utskriftsdelning         |
 | `openprinting-ppds`, `foomatic-db-compressed-ppds` | Drivrutinsdatabas           |
 | `ufw`                              | Brandvägg                                   |
+| `tmux`                             | Terminalfönster som överlever SSH-avbrott   |
 | `hplip` *(valfri)*                 | HP-skrivardrivrutiner                       |
 | `printer-driver-gutenprint` *(valfri)* | Bred drivrutinstäckning (Canon, Epson m.fl.) |
 | `printer-driver-escpr` *(valfri)*  | Epson ESCPR-drivrutiner                     |
@@ -141,6 +142,35 @@ Logga in med den Linux-användare som angavs i `CUPS_ADMIN_USER` (standard: `pi`
 ### Mac och iOS
 
 Skrivare upptäcks automatiskt via Bonjour (Avahi). Välj skrivare i systempreferenser som vanligt.
+
+## Uppdatera inställningar
+
+`deploy.sh` är idempotent och kan köras om utan att orsaka dubbelkonfiguration.
+Tjänsterna `cups`, `smbd` och `nmbd` startas alltid om vid slutet av scriptet,
+så konfigurationsändringar träder i kraft direkt.
+
+### Ändra WiFi, IP eller hostname
+
+1. Redigera `config.env` lokalt
+2. Kopiera filen till RPi:
+   ```bash
+   scp config.env pi@<STATIC_IP>:~/rpi-printserver/
+   ```
+3. Kör om deploy:
+   ```bash
+   ssh pi@<STATIC_IP>
+   cd ~/rpi-printserver
+   sudo bash deploy.sh
+   ```
+
+> **Obs:** Ändras `STATIC_IP` eller `HOSTNAME` tappar SSH-sessionen. Vänta 30 sekunder
+> och anslut sedan till den nya adressen. tmux-sessionen (`tmux attach -t deploy`)
+> visar logg och slutstatus.
+
+### Ändra CUPS- eller Samba-konfiguration
+
+Redigera mallfilerna i `config/` lokalt, kopiera och kör om deploy på samma sätt som ovan.
+deploy.sh skriver alltid de genererade konfigfilerna till disk och startar om berörda tjänster.
 
 ## Hårdvarukompatibilitet
 
