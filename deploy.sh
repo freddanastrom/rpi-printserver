@@ -116,16 +116,18 @@ step_system() {
     fi
 
     log "Sätter tidszon till: $TIMEZONE"
-    timedatectl set-timezone "$TIMEZONE"
+    ln -sf "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime
+    echo "$TIMEZONE" > /etc/timezone
 
     log "Sätter locale till: $LOCALE"
-    # Aktivera locale om den inte redan finns
+    # Aktivera locale i /etc/locale.gen om den inte redan finns
     if ! locale -a 2>/dev/null | grep -qi "${LOCALE%%.*}"; then
         sed -i "s/^# *${LOCALE}/${LOCALE}/" /etc/locale.gen || true
-        echo "${LOCALE} UTF-8" >> /etc/locale.gen
+        grep -qF "${LOCALE} UTF-8" /etc/locale.gen || echo "${LOCALE} UTF-8" >> /etc/locale.gen
         locale-gen >> "$LOG_FILE" 2>&1
     fi
-    localectl set-locale "LANG=$LOCALE"
+    # Använd update-locale istället för localectl – fungerar korrekt via sudo/SSH
+    update-locale "LANG=$LOCALE"
 
     log "Systeminställningar klara."
 }
