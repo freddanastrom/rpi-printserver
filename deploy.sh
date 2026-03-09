@@ -315,8 +315,9 @@ step_readonly() {
 PARTUUID=${root_partuuid}  /mnt/rw-root    ext4  defaults,noatime,nofail  0  0
 /mnt/rw-root/home          /home           none  bind,nofail        0  0
 /mnt/rw-root/etc/cups      /etc/cups       none  bind,nofail        0  0
+/mnt/rw-root/etc/NetworkManager/system-connections  /etc/NetworkManager/system-connections  none  bind,nofail  0  0
 EOF
-        log "fstab: /home och /etc/cups konfigurerade som persistenta (PARTUUID=${root_partuuid})"
+        log "fstab: /home, /etc/cups och /etc/NetworkManager/system-connections konfigurerade som persistenta (PARTUUID=${root_partuuid})"
     else
         log "fstab: persistenta kataloger redan konfigurerade"
     fi
